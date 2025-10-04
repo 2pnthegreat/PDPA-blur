@@ -1,0 +1,26 @@
+[project]
+name = "pdpa-blur-backend"
+version = "0.1.0"
+description = "FastAPI backend for PDPA blur project"
+requires-python = ">=3.9"
+dependencies = [
+  "fastapi>=0.118.0",
+  "uvicorn[standard]>=0.37.0",
+  "python-multipart>=0.0.9",
+  "pydantic>=2.11.0",
+  "pydantic-settings>=2.11.0",
+  "numpy>=1.26.4,<2.0",
+  "opencv-contrib-python==4.8.1.78",
+  "face-recognition>=1.3.0",
+  "face-recognition-models>=0.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.6.0",
+  "pytest>=8.2.0",
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
