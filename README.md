@@ -97,7 +97,7 @@ Windows: ใช้ [FFmpeg binaries](https://ffmpeg.org/download.html) + `choco 
 
 ```bash
 # 1) ดาวน์โหลดซอร์สโค้ด
-git clone https://github.com/YOUR_ORG/pdpa-blur.git
+git clone https://github.com/2pnthegreat/PDPA-blur.git
 cd pdpa-blur
 
 # 2) ตรวจสอบเวอร์ชันเครื่องมือพื้นฐาน
