@@ -5,13 +5,12 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY backend/requirements.txt .
+
+COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install mediapipe==0.10.14
 
 COPY backend /app
-ENV LOG_LEVEL=INFO \
-    PORT=10000 \
-    HOST=0.0.0.0
+ENV LOG_LEVEL=INFO PORT=10000 HOST=0.0.0.0
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000"]
