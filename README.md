@@ -312,3 +312,75 @@ ffmpeg -version
 โปรเจกต์ PDPA Blur อยู่ในสภาพพร้อมใช้งานสำหรับงาน Dev/PoC: โครงสร้างชัดเจน, UI ใช้งานง่าย, และ logic การเบลอที่ปรับจูนแล้วทั้งโหมดเร็วและโหมดละเอียด หากต้องการยกระดับไป production ให้โฟกัสที่การเปลี่ยน job store, จัดการ storage ระยะยาว, เสริมระบบ auth และ automation การทดสอบ/ดีพลอย
 
 > เก็บ README นี้ไว้เป็นคู่มือหลัก เมื่อกลับมาในอนาคตจะเข้าใจโครงสร้าง ระบบงาน และขั้นตอนตั้งค่าทั้งหมดได้ทันที
+
+---
+
+## 16. Deploy บนบริการฟรี (ตัวอย่าง Vercel + Render)
+
+การนำโปรเจกต์นี้ขึ้นใช้งานจริงควรแยก deploy **Frontend** และ **Backend** เนื่องจาก backend ต้องใช้ไลบรารีระดับระบบ (FFmpeg, CMake, dlib) ซึ่งแพลตฟอร์ม serverless อย่าง Vercel ไม่รองรับโดยตรง
+
+### 16.1 Frontend → Vercel (หรือ Netlify)
+
+1. Push โฟลเดอร์ `frontend/` ขึ้น GitHub (หรือ repo แยก)
+2. ตั้งค่า environment `NUXT_PUBLIC_API_BASE` ให้ชี้ไป backend production เช่น `https://pdpa-backend.onrender.com/api`
+3. ตรวจ build ในเครื่องก่อน deploy
+   ```bash
+   cd frontend
+    npm install
+   npm run build
+   ```
+4. บน Vercel: New Project → เลือก repo → Framework = Nuxt
+   - Build Command: `npm run build`
+   - Output Directory (โหมด static): `.output/public`
+   - ตั้ง `NUXT_PUBLIC_API_BASE` ใน Project Settings
+5. Deploy จะได้ URL ฟรี เช่น `https://pdpa-blur.vercel.app`
+
+> Netlify ใช้วิธีคล้ายกัน (Build command = `npm run build`, Publish directory = `dist` หากใช้โหมด static)
+
+### 16.2 Backend → Render / Railway / Fly.io (รองรับ Docker)
+
+เพราะต้องติดตั้ง FFmpeg + CMake แนะนำใช้บริการที่ให้ควบคุม image ได้ เช่น Render (Web Service), Railway, Fly.io หรือ Google Cloud Run
+
+ตัวอย่าง Deploy ด้วย Render (Docker)
+
+1. เพิ่ม `Dockerfile` (อยู่ใน root หรือ `backend/`):
+   ```Dockerfile
+   FROM python:3.10-slim
+
+   RUN apt-get update && \
+       apt-get install -y ffmpeg cmake build-essential && \
+       rm -rf /var/lib/apt/lists/*
+
+   WORKDIR /app
+   COPY backend/requirements.txt ./
+   RUN pip install --no-cache-dir -r requirements.txt && \
+       pip install mediapipe==0.10.14
+
+   COPY backend /app
+   ENV LOG_LEVEL=INFO PORT=10000 HOST=0.0.0.0
+
+   CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000"]
+   ```
+2. Commit + push ไป GitHub
+3. บน Render: New → Web Service → เลือก repo → (Render จะ build Docker ให้เอง)
+4. ตั้ง Environment variables เช่น `LOG_LEVEL=INFO`, `MEDIA_ROOT=/data/media`
+5. หากต้องเก็บไฟล์นานขึ้น ให้ผูก Persistent Disk หรือย้ายไฟล์ไปเก็บบน S3 แล้วลบทิ้งในเครื่องหลังส่งมอบ
+
+> Railway/Fly.io ทำคล้ายกัน: ใช้ Dockerfile เดิม กำหนด `PORT` ตามที่แพลตฟอร์มกำหนด (เช่น 8080) แล้วสั่ง deploy
+
+### 16.3 เชื่อม Frontend ↔ Backend
+
+- หลัง backend ได้ URL จริง ให้ตั้ง `NUXT_PUBLIC_API_BASE` ใน Vercel เป็น URL นั้น
+- ทดสอบหน้าเว็บ: อัปโหลดรูป/วิดีโอเพื่อเช็กว่า CORS และ endpoint ทำงานถูกต้อง
+- ปิด `allow_insecure_cors` ใน `.env` backend และเพิ่ม CORS middleware ให้อนุญาตเฉพาะ origin production
+
+### 16.4 Checklist ก่อนเปิดใช้งาน
+
+- [ ] ตรวจสอบว่า RAM/CPU plan ฟรีเพียงพอสำหรับ `face_recognition` (หากไม่พออาจต้องอัปเกรด plan)
+- [ ] ตั้ง cron หรือ lifecycle policy สำหรับลบไฟล์หมดอายุในสตอเรจ
+- [ ] เปิด HTTPS ทุก endpoint (Render/Netlify/Vercel มีใบรับรองอัตโนมัติ)
+- [ ] เพิ่ม auth/ratelimiting หากเปิดใช้งานสาธารณะ
+- [ ] ตั้งระบบ logging/monitoring (Render, Railway มี dashboard สำหรับ log)
+- [ ] รัน smoke test บน production URL ทั้งสองโหมด fast/detailed
+
+เมื่อทำครบจะได้ทั้ง frontend (Vercel) และ backend (Render/Fly.io ฯลฯ) พร้อมใช้งานจริงโดยไม่เสียค่าใช้จ่ายในระดับเริ่มต้น
