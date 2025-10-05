@@ -46,6 +46,13 @@ const isProcessing = ref(false)
 const statusMessage = ref('')
 const errorMessage = ref('')
 const jobStatus = computed(() => processingStore.currentJob)
+const displayProgress = computed(() => {
+  const value = jobStatus.value?.progress
+  if (typeof value !== 'number' || Number.isNaN(value) || !Number.isFinite(value)) {
+    return 0
+  }
+  return Math.max(0, Math.min(100, Math.round(value)))
+})
 const userId = 'demo-user'
 
 let pollHandle: ReturnType<typeof setInterval> | null = null
@@ -369,13 +376,13 @@ onBeforeUnmount(() => {
       <div class="flex items-center justify-between">
         <p class="text-sm font-semibold text-slate-200">สถานะการประมวลผล</p>
         <span class="text-sm font-medium text-emerald-300">
-          {{ Math.round(jobStatus.progress) }}%
+          {{ displayProgress }}%
         </span>
       </div>
       <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
         <div
           class="h-full bg-emerald-500 transition-all duration-500"
-          :style="{ width: `${Math.min(100, Math.round(jobStatus.progress))}%` }"
+          :style="{ width: `${displayProgress}%` }"
         />
       </div>
       <p class="mt-3 text-sm text-slate-400">
