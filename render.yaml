@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: pdpa-blur-backend
+    env: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/meta/ping
